@@ -1,0 +1,286 @@
+
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport"
+        content="width=device-width, initial-scale=1">
+  <title>Karterasys Scanner QA</title>
+
+  <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
+
+  <style>
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      background: #f3f5f9;
+      color: #172033;
+      font-family: Arial, sans-serif;
+    }
+
+    header {
+      background: #17213b;
+      color: white;
+      padding: 22px;
+      text-align: center;
+    }
+
+    header h1 { margin: 0; font-size: 23px; }
+    header p { margin-bottom: 0; color: #b9c9ed; }
+
+    main {
+      max-width: 520px;
+      margin: 22px auto;
+      padding: 0 15px;
+    }
+
+    .card {
+      background: white;
+      padding: 20px;
+      border-radius: 15px;
+      box-shadow: 0 4px 16px #00000012;
+    }
+
+    .card h2 { margin-top: 0; }
+
+    #reader {
+      width: 100%;
+      overflow: hidden;
+      border-radius: 12px;
+      background: #111827;
+      margin-bottom: 14px;
+    }
+
+    button {
+      display: block;
+      width: 100%;
+      padding: 15px;
+      margin: 10px 0;
+      border: none;
+      border-radius: 10px;
+      background: #2563eb;
+      color: white;
+      font-size: 16px;
+      font-weight: bold;
+      cursor: pointer;
+    }
+
+    button.secondary { background: #475569; }
+
+    button:disabled {
+      opacity: .5;
+      cursor: not-allowed;
+    }
+
+    input {
+      width: 100%;
+      padding: 14px;
+      border: 1px solid #cbd5e1;
+      border-radius: 9px;
+      font-size: 16px;
+      margin: 8px 0;
+    }
+
+    .result {
+      background: #eff6ff;
+      border-radius: 10px;
+      padding: 16px;
+      margin-top: 18px;
+      overflow-wrap: anywhere;
+    }
+
+    #code {
+      font-size: 22px;
+      font-weight: bold;
+    }
+
+    #status {
+      font-size: 14px;
+      color: #475569;
+      margin: 12px 0;
+    }
+
+    .note {
+      font-size: 12px;
+      color: #64748b;
+      text-align: center;
+      margin-top: 20px;
+    }
+  </style>
+</head>
+
+<body>
+
+<header>
+  <h1>KARTERASYS</h1>
+  <p>Manager 2.0 | Scanner QA</p>
+</header>
+
+<main>
+  <section class="card">
+    <h2>Escanear artículo</h2>
+
+    <p>Utiliza la cámara trasera de tu celular
+       para leer el código de barras.</p>
+
+    <div id="reader"></div>
+
+    <button id="startBtn" onclick="startScanner()">
+      Abrir cámara
+    </button>
+
+    <button class="secondary"
+            onclick="stopScanner()">
+      Detener cámara
+    </button>
+
+    <div id="status" role="status">
+      Escáner preparado.
+    </div>
+
+    <h3>Entrada manual</h3>
+
+    <input id="manualCode"
+           type="text"
+           placeholder="Introduce el código"
+           autocomplete="off">
+
+    <button onclick="manualSearch()">
+      Buscar código
+    </button>
+
+    <div class="result" aria-live="polite">
+      <strong>Último código detectado:</strong>
+      <p id="code">Ninguno todavía</p>
+    </div>
+  </section>
+
+  <p class="note">
+    Karterasys QA — Prueba de lectura.
+    No modifica inventario ni datos de clientes.
+  </p>
+</main>
+
+<script>
+  let scanner = null;
+  let running = false;
+  let starting = false;
+  let processing = false;
+
+  const statusBox = document.getElementById("status");
+  const codeBox = document.getElementById("code");
+  const startBtn = document.getElementById("startBtn");
+
+  function setStatus(message) {
+    statusBox.textContent = message;
+  }
+
+  async function startScanner() {
+    if (running || starting) return;
+
+    if (typeof Html5Qrcode === "undefined") {
+      setStatus("No se pudo cargar el lector. Revisa internet.");
+      return;
+    }
+
+    starting = true;
+    processing = false;
+    startBtn.disabled = true;
+
+    setStatus("Solicitando acceso a la cámara...");
+
+    try {
+      scanner = new Html5Qrcode("reader", {
+        formatsToSupport: [
+          Html5QrcodeSupportedFormats.EAN_13,
+          Html5QrcodeSupportedFormats.EAN_8,
+          Html5QrcodeSupportedFormats.UPC_A,
+          Html5QrcodeSupportedFormats.UPC_E,
+          Html5QrcodeSupportedFormats.CODE_128,
+          Html5QrcodeSupportedFormats.CODE_39
+        ],
+        verbose: false
+      });
+
+      await scanner.start(
+        { facingMode: "environment" },
+        {
+          fps: 10,
+          qrbox: function(width, height) {
+            return {
+              width: Math.min(300, Math.floor(width * 0.85)),
+              height: Math.min(140, Math.floor(height * 0.5))
+            };
+          },
+          disableFlip: true
+        },
+        onScanSuccess,
+        function() {}
+      );
+
+      running = true;
+      setStatus("Cámara activa. Apunta al código de barras.");
+
+    } catch (error) {
+      setStatus("No se pudo abrir la cámara. Revisa los permisos.");
+      scanner = null;
+      startBtn.disabled = false;
+    } finally {
+      starting = false;
+    }
+  }
+
+  async function stopScanner() {
+    if (!scanner || !running) return;
+
+    try {
+      await scanner.stop();
+      scanner.clear();
+    } catch (error) {
+      console.error(error);
+    }
+
+    running = false;
+    scanner = null;
+    startBtn.disabled = false;
+    setStatus("Cámara detenida.");
+  }
+
+  async function onScanSuccess(decodedText) {
+    if (processing) return;
+
+    processing = true;
+    showCode(decodedText);
+
+    if (navigator.vibrate) navigator.vibrate(100);
+
+    await stopScanner();
+    setStatus("Código leído correctamente.");
+  }
+
+  function showCode(value) {
+    const code = String(value).trim();
+
+    if (!code) {
+      setStatus("Introduce un código válido.");
+      return;
+    }
+
+    codeBox.textContent = code;
+    document.getElementById("manualCode").value = code;
+  }
+
+  function manualSearch() {
+    const value = document.getElementById("manualCode").value;
+    showCode(value);
+  }
+
+  document.getElementById("manualCode")
+    .addEventListener("keydown", function(event) {
+      if (event.key === "Enter") manualSearch();
+    });
+</script>
+
+</body>
+</html>
