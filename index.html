@@ -1,475 +1,156 @@
-
 <!DOCTYPE html>
 <html lang="es">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport"
-      content="width=device-width, initial-scale=1">
-
-<title>Karterasys Scanner QA v2</title>
-
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#17213b">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="Karterasys">
+<link rel="manifest" href="./manifest.webmanifest">
+<link rel="icon" type="image/png" sizes="192x192" href="./icon-192.png">
+<link rel="apple-touch-icon" sizes="180x180" href="./apple-touch-icon.png">
+<title>Karterasys Scanner QA</title>
 <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
-
 <style>
-* { box-sizing: border-box; }
-
-body {
-  margin: 0;
-  background: #f1f5f9;
-  font-family: Arial, sans-serif;
-  color: #172033;
-}
-
-header {
-  background: #17213b;
-  color: white;
-  text-align: center;
-  padding: 20px;
-}
-
-header h1 { margin: 0; }
-header p { margin: 7px 0 0; color: #b9c9ed; }
-
-main {
-  max-width: 520px;
-  margin: 20px auto;
-  padding: 0 14px;
-}
-
-.card {
-  background: white;
-  border-radius: 16px;
-  padding: 18px;
-  box-shadow: 0 4px 15px #00000012;
-}
-
-.camera {
-  position: relative;
-  width: 100%;
-  background: #111827;
-  border-radius: 12px;
-  overflow: hidden;
-  margin: 15px 0;
-}
-
-video {
-  display: none;
-  width: 100%;
-  max-height: 350px;
-  object-fit: cover;
-}
-
-#reader { width: 100%; }
-
-.guide {
-  display: none;
-  position: absolute;
-  z-index: 2;
-  left: 8%;
-  right: 8%;
-  top: 35%;
-  height: 30%;
-  border: 2px solid #22c55e;
-  border-radius: 8px;
-  pointer-events: none;
-}
-
-button {
-  width: 100%;
-  border: none;
-  border-radius: 10px;
-  padding: 15px;
-  margin: 8px 0;
-  font-weight: bold;
-  font-size: 16px;
-  background: #2563eb;
-  color: white;
-  cursor: pointer;
-}
-
-button.secondary { background: #475569; }
-
-button:disabled {
-  opacity: .5;
-  cursor: not-allowed;
-}
-
-input {
-  width: 100%;
-  padding: 14px;
-  font-size: 16px;
-  border: 1px solid #cbd5e1;
-  border-radius: 9px;
-}
-
-.result {
-  margin-top: 18px;
-  padding: 17px;
-  background: #eff6ff;
-  border-radius: 12px;
-  overflow-wrap: anywhere;
-}
-
-#code {
-  font-size: 23px;
-  font-weight: bold;
-}
-
-#status {
-  font-size: 14px;
-  color: #475569;
-  margin: 12px 0;
-}
-
-small { color: #64748b; }
+*{box-sizing:border-box}
+body{margin:0;background:#f1f5f9;font-family:Arial,Helvetica,sans-serif;color:#172033}
+header{background:#17213b;color:#fff;text-align:center;padding:20px}
+header h1{margin:0;font-size:24px;letter-spacing:.6px}
+header p{margin:7px 0 0;color:#b9c9ed;font-size:14px}
+.brand{display:flex;justify-content:center;align-items:center;gap:11px}
+.brand img{width:39px;height:39px;border-radius:10px}
+main{max-width:520px;margin:20px auto;padding:0 14px}
+.card{background:#fff;border-radius:16px;padding:18px;box-shadow:0 4px 15px #00000012}
+h2{margin-top:0}
+.camera{position:relative;width:100%;background:#111827;border-radius:12px;overflow:hidden;margin:15px 0;min-height:70px}
+video{display:none;width:100%;max-height:350px;object-fit:cover}
+#reader{width:100%}
+.guide{display:none;position:absolute;z-index:2;left:8%;right:8%;top:35%;height:30%;border:2px solid #22c55e;border-radius:8px;pointer-events:none}
+button{width:100%;border:0;border-radius:10px;padding:15px;margin:8px 0;font-weight:bold;font-size:16px;background:#2563eb;color:white;cursor:pointer}
+button.secondary{background:#475569}
+button:disabled{opacity:.5;cursor:not-allowed}
+input{width:100%;padding:14px;font-size:16px;border:1px solid #cbd5e1;border-radius:9px}
+.result{margin-top:18px;padding:17px;background:#eff6ff;border-radius:12px;overflow-wrap:anywhere}
+#code{font-size:23px;font-weight:bold}
+#status{font-size:14px;color:#475569;margin:12px 0}
+small{color:#64748b;line-height:1.5}
 </style>
 </head>
-
 <body>
-
-<header>
-  <h1>KARTERASYS</h1>
-  <p>Manager 2.0 | Scanner QA v2</p>
-</header>
-
-<main>
-<section class="card">
-
-  <h2>Escáner rápido</h2>
-  <p>Escanea productos utilizando la cámara trasera.</p>
-
-  <div class="camera">
-    <video id="video" autoplay muted playsinline></video>
-    <div id="guide" class="guide"></div>
-    <div id="reader"></div>
-  </div>
-
-  <button id="startBtn" onclick="startScanner()">
-    Abrir cámara
-  </button>
-
-  <button id="stopBtn"
-          class="secondary"
-          onclick="stopScanner()"
-          disabled>
-    Detener cámara
-  </button>
-
-  <p id="status" role="status">
-    Escáner preparado.
-  </p>
-
-  <h3>Entrada manual</h3>
-  <input id="manual"
-         type="text"
-         placeholder="Código del artículo">
-
-  <button onclick="manualSearch()">
-    Buscar código
-  </button>
-
-  <div class="result" aria-live="polite">
-    <strong>Último código detectado:</strong>
-    <p id="code">Ninguno</p>
-    <small id="count">Escaneos: 0</small>
-  </div>
-
-  <p>
-    <small>
-      Ambiente QA. No modifica inventario,
-      clientes ni transacciones.
-    </small>
-  </p>
-
-</section>
-</main>
-
+<header><div class="brand"><img src="./icon-192.png" alt="Ícono provisional de Karterasys"><h1>KARTERASYS</h1></div><p>Manager 2.0 | Scanner QA · PWA</p></header>
+<main><section class="card">
+<h2>Escáner rápido</h2>
+<p>Escanea productos utilizando la cámara trasera.</p>
+<div class="camera"><video id="video" autoplay muted playsinline></video><div id="guide" class="guide"></div><div id="reader"></div></div>
+<button id="startBtn" onclick="startScanner()">Abrir cámara</button>
+<button id="stopBtn" class="secondary" onclick="stopScanner()" disabled>Detener cámara</button>
+<p id="status" role="status">Escáner preparado.</p>
+<h3>Entrada manual</h3><input id="manual" type="text" placeholder="Código del artículo" inputmode="numeric">
+<button onclick="manualSearch()">Buscar código</button>
+<div class="result" aria-live="polite"><strong>Último código detectado:</strong><p id="code">Ninguno</p><small id="count">Escaneos: 0</small></div>
+<p><small>Ambiente QA. No modifica inventario, clientes ni transacciones. Para agregar el ícono al inicio: abre esta página en Safari o Chrome y usa la opción “Añadir a pantalla de inicio”.</small></p>
+</section></main>
 <script>
-let mode = null;
-let stream = null;
-let scanner = null;
-let detector = null;
-let timer = null;
-let active = false;
-let starting = false;
-let busy = false;
-let total = 0;
-let lastCode = "";
-let lastTime = 0;
-let session = 0;
-
-const video = document.getElementById("video");
-const reader = document.getElementById("reader");
-const guide = document.getElementById("guide");
-const statusBox = document.getElementById("status");
-const startBtn = document.getElementById("startBtn");
-const stopBtn = document.getElementById("stopBtn");
-
-const desiredFormats = [
-  "ean_13",
-  "ean_8",
-  "upc_a",
-  "upc_e",
-  "code_128",
-  "code_39"
-];
-
-function status(text) {
-  statusBox.textContent = text;
+let mode=null,stream=null,scanner=null,detector=null,timer=null;
+let active=false,starting=false,busy=false,total=0,lastCode='',lastTime=0,session=0;
+const video=document.getElementById('video');
+const reader=document.getElementById('reader');
+const guide=document.getElementById('guide');
+const statusBox=document.getElementById('status');
+const startBtn=document.getElementById('startBtn');
+const stopBtn=document.getElementById('stopBtn');
+const desiredFormats=['ean_13','ean_8','upc_a','upc_e','code_128','code_39'];
+function status(message){statusBox.textContent=message}
+function received(value){
+ const code=String(value).trim(); if(!code)return;
+ const now=Date.now(); if(code===lastCode && now-lastTime<2000)return;
+ lastCode=code;lastTime=now;total++;
+ document.getElementById('code').textContent=code;
+ document.getElementById('count').textContent='Escaneos: '+total;
+ document.getElementById('manual').value=code;
+ status('Código leído. Puedes escanear otro.');
+ if(navigator.vibrate)navigator.vibrate(100);
 }
-
-function received(code) {
-  code = String(code).trim();
-  if (!code) return;
-
-  const now = Date.now();
-
-  // Evita lecturas duplicadas muy seguidas.
-  if (code === lastCode && now - lastTime < 2000) {
-    return;
+async function startScanner(){
+ if(active||starting)return;
+ starting=true;startBtn.disabled=true;stopBtn.disabled=true;
+ status('Preparando cámara...');
+ try{
+  let useNative=false;
+  if('BarcodeDetector' in window){
+   try{
+    const supported=await BarcodeDetector.getSupportedFormats();
+    const formats=desiredFormats.filter(f=>supported.includes(f));
+    if(formats.length){detector=new BarcodeDetector({formats});useNative=true}
+   }catch(e){useNative=false}
   }
-
-  lastCode = code;
-  lastTime = now;
-  total++;
-
-  document.getElementById("code").textContent = code;
-  document.getElementById("count").textContent =
-    "Escaneos: " + total;
-
-  document.getElementById("manual").value = code;
-
-  status("Código leído. Puedes escanear otro.");
-
-  if (navigator.vibrate) {
-    navigator.vibrate(100);
-  }
+  if(useNative){
+   try{await startNative()}catch(e){await releaseNative();await startFallback()}
+  }else{await startFallback()}
+  active=true;stopBtn.disabled=false;
+ }catch(e){
+  status('No se pudo iniciar. Revisa los permisos y la conexión.');
+  await releaseNative();active=false;stopBtn.disabled=true;
+ }finally{starting=false;startBtn.disabled=active}
 }
-
-async function startScanner() {
-  if (active || starting) return;
-
-  starting = true;
-  startBtn.disabled = true;
-  stopBtn.disabled = true;
-
-  status("Preparando cámara...");
-
-  try {
-    let nativeAvailable = false;
-
-    if ("BarcodeDetector" in window) {
-      try {
-        const supported =
-          await BarcodeDetector.getSupportedFormats();
-
-        const formats = desiredFormats.filter(
-          f => supported.includes(f)
-        );
-
-        if (formats.length > 0) {
-          detector = new BarcodeDetector({
-            formats: formats
-          });
-          nativeAvailable = true;
-        }
-      } catch (e) {
-        nativeAvailable = false;
-      }
-    }
-
-    if (nativeAvailable) {
-      try {
-        await startNative();
-      } catch (e) {
-        await releaseNative();
-        await startFallback();
-      }
-    } else {
-      await startFallback();
-    }
-
-    active = true;
-    stopBtn.disabled = false;
-
-  } catch (error) {
-    status("No se pudo iniciar. Revisa permisos de cámara.");
-    await releaseNative();
-    active = false;
-    stopBtn.disabled = true;
-  } finally {
-    starting = false;
-    startBtn.disabled = active;
+async function startNative(){
+ mode='native';
+ stream=await navigator.mediaDevices.getUserMedia({audio:false,video:{facingMode:{ideal:'environment'},width:{ideal:1280},height:{ideal:720}}});
+ video.srcObject=stream;video.style.display='block';guide.style.display='block';await video.play();
+ status('Cámara activa. Apunta al código.');
+ const currentSession=++session;
+ async function scanFrame(){
+  if(currentSession!==session)return;
+  if(!busy && video.readyState>=2){
+   busy=true;
+   try{const results=await detector.detect(video);if(currentSession===session && results.length)received(results[0].rawValue)}
+   catch(e){}finally{busy=false}
   }
+  if(currentSession===session)timer=setTimeout(scanFrame,120);
+ }
+ scanFrame();
 }
-
-async function startNative() {
-  mode = "native";
-
-  stream = await navigator.mediaDevices.getUserMedia({
-    audio: false,
-    video: {
-      facingMode: { ideal: "environment" },
-      width: { ideal: 1280 },
-      height: { ideal: 720 }
-    }
-  });
-
-  video.srcObject = stream;
-  video.style.display = "block";
-  guide.style.display = "block";
-
-  await video.play();
-
-  status("Cámara activa. Apunta al código.");
-  const currentSession = ++session;
-
-  async function scanFrame() {
-    if (currentSession !== session) return;
-
-    if (!busy && video.readyState >= 2) {
-      busy = true;
-
-      try {
-        const results = await detector.detect(video);
-
-        if (currentSession !== session) return;
-
-        if (results.length > 0) {
-          received(results[0].rawValue);
-        }
-      } catch (e) {
-        // Continuar con el siguiente fotograma.
-      } finally {
-        busy = false;
-      }
-    }
-
-    if (currentSession === session) {
-      timer = setTimeout(scanFrame, 120);
-    }
-  }
-
-  scanFrame();
+async function startFallback(){
+ if(typeof Html5Qrcode==='undefined')throw new Error('No se cargó la biblioteca');
+ mode='fallback';
+ scanner=new Html5Qrcode('reader',{
+  formatsToSupport:[
+   Html5QrcodeSupportedFormats.EAN_13,Html5QrcodeSupportedFormats.EAN_8,
+   Html5QrcodeSupportedFormats.UPC_A,Html5QrcodeSupportedFormats.UPC_E,
+   Html5QrcodeSupportedFormats.CODE_128,Html5QrcodeSupportedFormats.CODE_39
+  ],verbose:false
+ });
+ try{
+  await scanner.start({facingMode:'environment'},
+   {fps:15,qrbox:(w,h)=>({width:Math.min(w,Math.max(50,Math.floor(w*.9))),height:Math.min(h,Math.max(40,Math.floor(h*.5)),160)}),disableFlip:true},
+   text=>received(text),()=>{});
+ }catch(e){try{scanner.clear()}catch(_){}scanner=null;mode=null;throw e}
+ status('Cámara activa. Apunta al código.');
 }
-
-async function startFallback() {
-  if (typeof Html5Qrcode === "undefined") {
-    throw new Error("Biblioteca no disponible");
-  }
-
-  mode = "fallback";
-
-  scanner = new Html5Qrcode("reader", {
-    formatsToSupport: [
-      Html5QrcodeSupportedFormats.EAN_13,
-      Html5QrcodeSupportedFormats.EAN_8,
-      Html5QrcodeSupportedFormats.UPC_A,
-      Html5QrcodeSupportedFormats.UPC_E,
-      Html5QrcodeSupportedFormats.CODE_128,
-      Html5QrcodeSupportedFormats.CODE_39
-    ],
-    verbose: false
-  });
-
-  try {
-    await scanner.start(
-      { facingMode: "environment" },
-      {
-        fps: 15,
-        qrbox: function(w, h) {
-          return {
-            width: Math.max(50, Math.floor(w * 0.9)),
-            height: Math.max(
-              40,
-              Math.min(160, Math.floor(h * 0.5))
-            )
-          };
-        },
-        disableFlip: true
-      },
-      function(decodedText) {
-        received(decodedText);
-      },
-      function() {}
-    );
-  } catch (error) {
-    try { scanner.clear(); } catch (e) {}
-    scanner = null;
-    mode = null;
-    throw error;
-  }
-
-  status("Cámara activa. Apunta al código.");
+async function releaseNative(){
+ ++session;clearTimeout(timer);timer=null;
+ if(stream){stream.getTracks().forEach(track=>track.stop());stream=null}
+ video.pause();video.srcObject=null;video.style.display='none';guide.style.display='none';detector=null;
 }
-
-async function releaseNative() {
-  ++session;
-  clearTimeout(timer);
-  timer = null;
-
-  if (stream) {
-    stream.getTracks().forEach(track => track.stop());
-    stream = null;
-  }
-
-  video.pause();
-  video.srcObject = null;
-  video.style.display = "none";
-  guide.style.display = "none";
-  detector = null;
+async function stopScanner(){
+ if(starting||!active)return;
+ active=false;stopBtn.disabled=true;startBtn.disabled=true;
+ if(mode==='native')await releaseNative();
+ if(mode==='fallback'&&scanner){try{await scanner.stop();scanner.clear()}catch(e){console.error(e)}scanner=null}
+ mode=null;startBtn.disabled=false;status('Cámara detenida.');
 }
-
-async function stopScanner() {
-  if (starting || !active) return;
-
-  active = false;
-  stopBtn.disabled = true;
-  startBtn.disabled = true;
-
-  if (mode === "native") {
-    await releaseNative();
-  }
-
-  if (mode === "fallback" && scanner) {
-    try {
-      await scanner.stop();
-      scanner.clear();
-    } catch (e) {
-      console.error(e);
-    }
-    scanner = null;
-  }
-
-  mode = null;
-  startBtn.disabled = false;
-  status("Cámara detenida.");
+function manualSearch(){
+ const code=document.getElementById('manual').value.trim();
+ if(!code){status('Introduce un código.');return}
+ received(code);
 }
-
-function manualSearch() {
-  const code =
-    document.getElementById("manual").value.trim();
-
-  if (!code) {
-    status("Introduce un código.");
-    return;
-  }
-
-  received(code);
-}
-
-document.getElementById("manual")
-  .addEventListener("keydown", function(event) {
-    if (event.key === "Enter") manualSearch();
-  });
-
-window.addEventListener("pagehide", function() {
-  ++session;
-  if (stream) {
-    stream.getTracks().forEach(track => track.stop());
-  }
+document.getElementById('manual').addEventListener('keydown',event=>{if(event.key==='Enter')manualSearch()});
+window.addEventListener('pagehide',()=>{
+ ++session;
+ if(stream)stream.getTracks().forEach(track=>track.stop());
+ if(scanner&&active){scanner.stop().catch(()=>{}).finally(()=>{try{scanner.clear()}catch(e){}})}
 });
 </script>
-
 </body>
 </html>
